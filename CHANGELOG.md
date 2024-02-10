@@ -22,6 +22,10 @@ All notable changes to this project will be documented in this file.
 ### Security
 - TBD
 
+## [0.0.2] - 2024-02-10
+### Fixed
+- Fixed typo on test.
+
 ## [0.0.1] - 2024-02-10
 ### Added
 - Initialize the snowflake sequence generator.

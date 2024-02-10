@@ -51,7 +51,7 @@ func TestMultiCall(t *testing.T) {
 	gen, _ := NewGenerator(3, start)
 	c := make(chan uint64)
 	times := rand.Intn(100000) + 1000
-	num := 10
+	num := rand.Intn(20) + 5
 	go func() {
 		defer close(c)
 		var wg sync.WaitGroup
@@ -74,9 +74,7 @@ func TestMultiCall(t *testing.T) {
 		}
 		show[v] = true
 	}
-	if len(show) != times*10 {
-		t.Error("the count sequence should be equal", times*num)
-	}
+	assert.Equal(t, times*num, len(show), "the count sequence should be equal")
 }
 
 func TestErrInitGenerator(t *testing.T) {
