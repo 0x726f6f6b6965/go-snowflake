@@ -94,6 +94,19 @@ func TestErrInitGenerator(t *testing.T) {
 
 }
 
+func TestNextExceed(t *testing.T) {
+	date := time.Date(1954, 1, 1, 0, 0, 0, 0, time.UTC)
+	g := generator{
+		nodeID:    7,
+		baseEpoch: date.UnixMilli(),
+		sequence:  make(chan uint64),
+	}
+	assert.NotNil(t, g)
+
+	_, err := g.Next()
+	assert.ErrorIs(t, err, ErrStartExceed, err)
+}
+
 func BenchmarkCall(b *testing.B) {
 	gen, _ := NewGenerator(7, start)
 	c := make(chan uint64)

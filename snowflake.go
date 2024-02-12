@@ -38,7 +38,7 @@ type generator struct {
 	// sequence is the last 14 bits.
 	sequence chan uint64
 	// baseEpoch is the start time.
-	baseEpoch uint64
+	baseEpoch int64
 }
 
 func NewGenerator(node uint64, start time.Time) (Generator, error) {
@@ -63,7 +63,7 @@ func NewGenerator(node uint64, start time.Time) (Generator, error) {
 		rootGenerator = &generator{
 			nodeID:    node,
 			sequence:  make(chan uint64),
-			baseEpoch: uint64(start.UnixMilli()),
+			baseEpoch: start.UnixMilli(),
 		}
 		go func() {
 			var (
@@ -93,15 +93,15 @@ func NewGenerator(node uint64, start time.Time) (Generator, error) {
 }
 
 func (g *generator) Next() (*big.Int, error) {
-	current := uint64(time.Now().UnixMilli())
-	if current > maxEpoch {
+	current := time.Now().UnixMilli()
+	if uint64(current-g.baseEpoch) > maxEpoch {
 		return nil, ErrStartExceed
 	}
 
 	seq := <-g.sequence
 
 	nodeId := g.nodeID << shiftNode
-	result := (current-g.baseEpoch)<<shiftEpoch + nodeId + seq
+	result := uint64(current-g.baseEpoch)<<shiftEpoch + nodeId + seq
 	num := big.NewInt(0)
 	return num.SetUint64(result), nil
 }

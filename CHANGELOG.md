@@ -22,6 +22,10 @@ All notable changes to this project will be documented in this file.
 ### Security
 - TBD
 
+## [0.0.3] - 2024-02-10
+### Fixed
+- Fixed the Next function exceed condition.
+
 ## [0.0.2] - 2024-02-10
 ### Fixed
 - Fixed typo on test.

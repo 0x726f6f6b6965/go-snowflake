@@ -1,9 +1,7 @@
 # go-snowflake
 
 [![GoDoc](https://godoc.org/github.com/0x726f6f6b6965/go-snowflake?status.svg)](https://godoc.org/github.com/0x726f6f6b6965/go-snowflake)
-
 [![Go Report Card](https://goreportcard.com/badge/github.com/0x726f6f6b6965/go-snowflake)](https://goreportcard.com/report/github.com/0x726f6f6b6965/go-snowflake)
-
 [![codecov](https://codecov.io/gh/0x726f6f6b6965/go-snowflake/branch/main/graph/badge.svg)](https://codecov.io/gh/0x726f6f6b6965/go-snowflake)
 
 ---
@@ -12,12 +10,12 @@ A simple Twitter snowflake sequence generator.
 ### Futures 
 - The lifecycle of the generator is 69 years.
 - It can be leveraged on distributed systems.
-- It can ensure the correct sequence order is on the one node strongly, but the correct sequence order is on the distributed systems weakly. 
+- It can ensure the correct sequence order is on the one node strongly, but the correct sequence order is on the distributed systems weakly because of NTP.
 
 ### Format
 ```
 +--------------------------------------------------------------------------+
-| 1 Bit Unused | 41 Bit Timestamp |  8 Bit NodeID  |   14 Bit Sequence ID |
+| 1 Bit Unused | 41 Bit Timestamp |  8 Bit NodeID  |   14 Bit Sequence ID  |
 +--------------------------------------------------------------------------+
 ```
 
@@ -27,10 +25,10 @@ A simple Twitter snowflake sequence generator.
 package main
 
 import (
-	"fmt"
-    "time"
+        "fmt"
+        "time"
 
-	"github.com/0x726f6f6b6965/go-snowflake"
+        "github.com/0x726f6f6b6965/go-snowflake"
 )
 
 func main() {
