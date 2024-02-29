@@ -32,7 +32,7 @@ func teardown() {
 
 func TestNextMonotonic(t *testing.T) {
 	gen, _ := NewGenerator(10, start)
-	out := make([]string, 10000)
+	out := make([]string, 100000)
 
 	for i := range out {
 		seq, _ := gen.Next()
@@ -94,15 +94,22 @@ func TestErrInitGenerator(t *testing.T) {
 
 }
 
+func TestClose(t *testing.T) {
+	gen, _ := NewGenerator(7, start)
+	gen.Close()
+	_, err := gen.Next()
+	assert.ErrorIs(t, err, ErrGeneratorClosed)
+}
+
 func TestNextExceed(t *testing.T) {
 	date := time.Date(1954, 1, 1, 0, 0, 0, 0, time.UTC)
 	g := generator{
 		nodeID:    7,
 		baseEpoch: date.UnixMilli(),
-		sequence:  make(chan uint64),
+		sequence:  make(chan int64, 1),
 	}
 	assert.NotNil(t, g)
-
+	g.sequence <- 0
 	_, err := g.Next()
 	assert.ErrorIs(t, err, ErrStartExceed, err)
 }

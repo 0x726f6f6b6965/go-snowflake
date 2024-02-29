@@ -34,7 +34,7 @@ import (
 func main() {
     var (
         startTime = time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
-        nodeID uint64 = 3
+        nodeID int64 = 3
     )
 	// Create a new generator 
 	generator, err := snowflake.NewGenerator(nodeID, startTime)
@@ -44,7 +44,7 @@ func main() {
 	}
 
 	// Generate a sequence.
-	sequence := generator.Next()
+	sequence, _ := generator.Next()
 
 	// Print out the sequence.
 	fmt.Printf("Uint64 Sequence: %d\n", sequence.Uint64())

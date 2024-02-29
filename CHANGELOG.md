@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
-- TBD
+- Added Close function.
 
 ### Changed
 - TBD
