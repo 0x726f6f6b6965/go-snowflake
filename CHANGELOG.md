@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
-- Added Close function.
+- TBD
 
 ### Changed
 - TBD
@@ -21,6 +21,10 @@ All notable changes to this project will be documented in this file.
 
 ### Security
 - TBD
+
+## [0.0.4] - 2024-03-04
+### Added
+- Added Close function.
 
 ## [0.0.3] - 2024-02-10
 ### Fixed
