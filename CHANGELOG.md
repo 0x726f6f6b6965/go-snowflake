@@ -10,17 +10,13 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- Replaced channel-based sequence generation with a mutex-protected counter to improve speed.
-- Updated time generation logic within the Next() method.
-- Refactored NewGenerator and Close methods to better support test isolation, particularly for the singleton generator instance.
-- Updated BenchmarkNext to accurately measure the performance of the Next() method after changes.
-- Fixed issues in tests that arose from the refactoring of the generator logic.
+- TBD
 
 ### Deprecated
 
 - TBD
 
-### Reomved
+### Removed
 
 - TBD
 
@@ -31,6 +27,16 @@ All notable changes to this project will be documented in this file.
 ### Security
 
 - TBD
+
+## [1.0.0] - 2025-06-28
+
+### Changed
+
+- Refactored Snowflake ID generator to use a mutex and an `int64` for sequence management instead of a channel, improving performance and concurrency control.
+- Enhanced `Close()` method to properly reset the singleton generator's state, enabling clean re-initialization for testing scenarios.
+- Improved `NewGenerator` validation to ensure the node ID is non-negative.
+- Implemented clock-backwards detection and sequence overflow handling within the `Next()` method for increased robustness.
+- Updated benchmark tests to reflect the new generator implementation.
 
 ## [0.0.4] - 2024-03-04
 
