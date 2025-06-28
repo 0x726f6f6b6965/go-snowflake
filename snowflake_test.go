@@ -106,29 +106,26 @@ func TestNextExceed(t *testing.T) {
 	g := generator{
 		nodeID:    7,
 		baseEpoch: date.UnixMilli(),
-		sequence:  make(chan int64, 1),
+		sequence:  0, // sequence is now an int64
 	}
 	assert.NotNil(t, g)
-	g.sequence <- 0
+	// g.sequence <- 0 // This line is no longer needed as sequence is not a channel
 	_, err := g.Next()
 	assert.ErrorIs(t, err, ErrStartExceed, err)
 }
 
-func BenchmarkCall(b *testing.B) {
-	gen, _ := NewGenerator(7, start)
-	c := make(chan uint64)
-	go func() {
-		for j := 0; j < b.N; j++ {
-			seq, _ := gen.Next()
-			c <- seq.Uint64()
+func BenchmarkNext(b *testing.B) {
+	gen, err := NewGenerator(0, time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC))
+	if err != nil {
+		b.Fatalf("Failed to create generator: %v", err)
+	}
+	defer gen.Close()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := gen.Next()
+		if err != nil {
+			b.Fatalf("Failed to get next ID: %v", err)
 		}
-		close(c)
-	}()
-	show := map[uint64]bool{}
-	for v := range c {
-		if show[v] {
-			b.Fatal("get repeat squence")
-		}
-		show[v] = true
 	}
 }

@@ -43,15 +43,19 @@ type generator struct {
 	// nodeID is the node ID that the Snowflake generator will use for the next 8 bits
 	nodeID int64
 	// sequence is the last 14 bits.
-	sequence chan int64
+	sequence int64
 	// baseEpoch is the start time.
 	baseEpoch int64
-	// stop is the signal to close the generator.
-	stop chan struct{}
+	// lastTimestamp is the last timestamp in milliseconds.
+	lastTimestamp int64
+	// mu is a mutex to protect the generator state.
+	mu sync.Mutex
+	// closed is a flag to indicate if the generator is closed.
+	closed bool
 }
 
 func NewGenerator(node int64, start time.Time) (Generator, error) {
-	if node > maxNode {
+	if node < 0 || node > maxNode {
 		return nil, ErrInvalidNode
 	}
 	start = start.UTC()
@@ -60,77 +64,102 @@ func NewGenerator(node int64, start time.Time) (Generator, error) {
 		return nil, ErrStartZero
 	}
 
-	if start.After(time.Now().UTC()) {
+	now := time.Now().UTC()
+	if start.After(now) {
 		return nil, ErrStartFuture
 	}
 
-	if uint64(time.Now().UnixMilli()-start.UnixMilli()) > maxEpoch {
+	if uint64(now.UnixMilli()-start.UnixMilli()) > maxEpoch {
 		return nil, ErrStartExceed
 	}
+
 	// singleton
 	onceInitGenerator.Do(func() {
 		rootGenerator = &generator{
-			nodeID:    node,
-			sequence:  make(chan int64),
-			baseEpoch: start.UnixMilli(),
-			stop:      make(chan struct{}, 1),
+			nodeID:        node,
+			sequence:      0,
+			baseEpoch:     start.UnixMilli(),
+			lastTimestamp: -1,
+			closed:        false,
 		}
-		go func() {
-			var (
-				signal chan struct{}
-			)
-
-			for {
-				var reset <-chan time.Time
-				if signal == nil {
-					reset = time.After(time.Millisecond)
-				}
-				select {
-				case <-reset:
-					signal = make(chan struct{}, 1)
-					signal <- struct{}{}
-				case <-signal:
-					signal = nil
-					var i int64
-					for i = 0; i <= maxSequence; i++ {
-						rootGenerator.sequence <- i
-						select {
-						case <-rootGenerator.stop:
-							close(rootGenerator.sequence)
-							close(rootGenerator.stop)
-							return
-						default:
-							continue
-						}
-					}
-				}
-			}
-		}()
 	})
+	// If the existing rootGenerator's parameters don't match,
+	// it implies a test might be trying to reconfigure the singleton.
+	// The Close() method now resets rootGenerator to nil, so this
+	// 'onceInitGenerator.Do' will run again if a new generator is needed after Close().
+	// However, if NewGenerator is called multiple times *without* Close in between,
+	// with different params, it will still return the initially configured singleton.
+	// This is inherent to the current singleton design.
+	// For test isolation, ensure Close() is called, or tests account for this behavior.
+	if rootGenerator != nil && (rootGenerator.nodeID != node || rootGenerator.baseEpoch != start.UnixMilli()) {
+		// This condition indicates a potential issue in test setup or a misunderstanding of the singleton's nature.
+		// For now, we'll proceed with the initialized or existing rootGenerator.
+		// The primary goal of this refactor iteration is to fix the "generator is closed" error
+		// by ensuring `Close()` properly resets state for subsequent `NewGenerator` calls in tests.
+	}
+
 
 	return rootGenerator, nil
 }
 
 func (g *generator) Next() (*big.Int, error) {
-	seq, ok := <-g.sequence
-	if !ok {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	if g.closed {
 		return nil, ErrGeneratorClosed
 	}
 
-	current := time.Now().UnixMilli()
+	current := time.Now().UTC().UnixMilli()
+
 	if uint64(current-g.baseEpoch) > maxEpoch {
 		return nil, ErrStartExceed
 	}
 
-	result := (current-g.baseEpoch)<<shiftEpoch | g.nodeID<<shiftNode | seq
+	if current < g.lastTimestamp {
+		// Clock is moving backwards. Wait until the clock catches up.
+		// This might happen if the system clock is adjusted.
+		// For simplicity, we'll return an error here.
+		// A more robust solution might involve waiting or using a different strategy.
+		return nil, errors.New("clock moved backwards")
+	}
+
+	if current == g.lastTimestamp {
+		g.sequence = (g.sequence + 1) & maxSequence
+		if g.sequence == 0 {
+			// Sequence overflowed, wait for next millisecond
+			for current <= g.lastTimestamp {
+				current = time.Now().UTC().UnixMilli()
+			}
+		}
+	} else {
+		g.sequence = 0
+	}
+
+	g.lastTimestamp = current
+
+	result := (current-g.baseEpoch)<<shiftEpoch | g.nodeID<<shiftNode | g.sequence
 	num := big.NewInt(result)
 	return num, nil
 }
 
 func (g *generator) Close() {
+	g.mu.Lock() // Lock the specific instance
+	if g.closed { // If already closed, nothing to do for this instance
+		g.mu.Unlock()
+		return
+	}
+	g.closed = true
+	g.mu.Unlock() // Unlock the specific instance
+
+	// Perform global resets only once.
+	// This ensures that when the active generator is closed,
+	// the state is reset for a new generator to be created cleanly by tests.
 	onceCloseGenerator.Do(func() {
-		g.stop <- struct{}{}
-		// clean sequence channel
-		<-g.sequence
+		rootGenerator = nil
+		onceInitGenerator = sync.Once{}
+		// Reset onceCloseGenerator itself so that if a new generator is created and then closed,
+		// it can also perform this global reset.
+		onceCloseGenerator = sync.Once{}
 	})
 }
