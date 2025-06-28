@@ -82,6 +82,9 @@ func NewGenerator(node int64, start time.Time) (Generator, error) {
 			lastTimestamp: -1,
 			closed:        false,
 		}
+		// Reset onceCloseGenerator itself so that if a new generator is created and then closed,
+		// it can also perform this global reset.
+		onceCloseGenerator = sync.Once{}
 	})
 	// If the existing rootGenerator's parameters don't match,
 	// it implies a test might be trying to reconfigure the singleton.
@@ -97,7 +100,6 @@ func NewGenerator(node int64, start time.Time) (Generator, error) {
 		// The primary goal of this refactor iteration is to fix the "generator is closed" error
 		// by ensuring `Close()` properly resets state for subsequent `NewGenerator` calls in tests.
 	}
-
 
 	return rootGenerator, nil
 }
@@ -144,7 +146,7 @@ func (g *generator) Next() (*big.Int, error) {
 }
 
 func (g *generator) Close() {
-	g.mu.Lock() // Lock the specific instance
+	g.mu.Lock()   // Lock the specific instance
 	if g.closed { // If already closed, nothing to do for this instance
 		g.mu.Unlock()
 		return
@@ -158,8 +160,5 @@ func (g *generator) Close() {
 	onceCloseGenerator.Do(func() {
 		rootGenerator = nil
 		onceInitGenerator = sync.Once{}
-		// Reset onceCloseGenerator itself so that if a new generator is created and then closed,
-		// it can also perform this global reset.
-		onceCloseGenerator = sync.Once{}
 	})
 }
